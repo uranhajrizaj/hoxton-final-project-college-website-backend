@@ -311,7 +311,8 @@ app.post("/sign-in", async (req, res) => {
         } else {
             res.status(400).send({errors: ["Wrong email or password. Try again"]});
         }
-    } catch (error) { // @ts-ignore
+    } catch (error) { 
+        // @ts-ignore
         res.status(400).send({ errors: [error.message]
         });
     }
@@ -329,6 +330,23 @@ app.get("/validate", async (req, res) => {
         res.status(400).send({ error: error.message });
       }
 });
+
+app.post("/news",async(req,res)=>{
+    try{
+        const newPost={
+            title:req.body.title,
+            content:req.body.content,
+            image:req.body.image
+        }
+        const news = await prisma.news.create({data:newPost})
+        res.send(news)
+    }catch (error) { 
+        // @ts-ignore
+        res.status(400).send({ errors: [error.message]
+        });
+    }
+ 
+})
 
 app.listen(port, () => {
     console.log(`Serveri is running on: http://localhost:${port}`);

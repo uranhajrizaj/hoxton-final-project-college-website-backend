@@ -31,19 +31,30 @@ model User {
   classes Class[] @relation("teachers")
 
   subjects Subject[] @relation("teacher")
+
+  posts News[]
 }
 
 model Class {
-  id       Int    @id @default(autoincrement())
-  name     String @unique
+  id       Int       @id @default(autoincrement())
+  name     String    @unique
   students User[]
-  teachers User[] @relation("teachers")
+  teachers User[]    @relation("teachers")
   subjects Subject[]
 }
 
 model Subject {
-  id         Int    @id @default(autoincrement())
+  id         Int     @id @default(autoincrement())
   name       String
-  professors User[] @relation("teacher")
-  classes Class[]
+  professors User[]  @relation("teacher")
+  classes    Class[]
+}
+
+model News {
+  id      Int     @id @default(autoincrement())
+  title   String
+  content String
+  image   String?
+  admin   User? @relation(fields: [userId], references: [id])
+  userId Int?
 }
