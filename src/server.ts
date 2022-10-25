@@ -14,7 +14,7 @@ const prisma = new PrismaClient({
 });
 
 const app = express();
-const SECRET = process.env.SECRET!;
+const SECRET = process.env.SECRET !;
 const port = 4455;
 
 app.use(cors());
@@ -22,13 +22,17 @@ app.use(express.json());
 
 async function getCurrentUser(token: string) {
     const decodedData = jwt.verify(token, SECRET);
-    const user = await prisma.user.findUnique({
-      // @ts-ignore
-      where: { id: decodedData.id }
-      })
-    if (!user) return null;
-    return user ;
-  }
+    const user = await prisma.user.findUnique({ 
+        where: { 
+            // @ts-ignore
+            id: decodedData.id
+        }
+    },)
+    if (! user) 
+        return null;
+    
+    return user;
+}
 
 app.get("/class/:name", async (req, res) => {
     try {
@@ -43,15 +47,8 @@ app.get("/class/:name", async (req, res) => {
                         id: true,
                         fullname: true,
                         image: true,
-                        email: true
-                    }
-                },
-                teachers: {
-                    select: {
-                        id: true,
-                        fullname: true,
-                        image: true,
-                        email: true
+                        email: true,
+                        stduentFromTeacherMark:{select:{mark:true,subject:{select:{name:true}},student:{select:{fullname:true}},teacher:{select:{fullname:true}}}}
                     }
                 },
                 subjects: true
@@ -62,6 +59,23 @@ app.get("/class/:name", async (req, res) => {
         res.status(400).send({errors: error.message})
     }
 })
+
+app.get("/subject/:name",async(req,res)=>{
+const subject=await prisma.subject.findUnique({where:{name:req.params.name},select:{marks:{select:{student:{select:{fullname:true}},mark:true,teacher:{select:{fullname:true}},subject:{select:{name:true}}}}}
+
+})
+res.send(subject)
+})
+app.post("/marks",async(req,res)=>{
+  const mark=await prisma.mark.create({data:{
+            mark:req.body.mark,
+            teacher:{connect:{email:req.body.teacher}},
+            student:{connect:{email:req.body.student}},
+            subject:{connect:{name:req.body.name}} 
+        }})
+        res.send(mark)
+})
+
 
 app.get("/student/:email", async (req, res) => {
     try {
@@ -78,20 +92,6 @@ app.get("/student/:email", async (req, res) => {
                 class: {
                     select : {
                         name: true,
-                        subjects: {
-                            select: {
-                                id: true,
-                                name: true,
-                                professors: {
-                                    select: {
-                                        id: true,
-                                        fullname: true,
-                                        image: true,
-                                        email: true
-                                    }
-                                }
-                            }
-                        }
                     }
                 },
                 parent: {
@@ -101,7 +101,20 @@ app.get("/student/:email", async (req, res) => {
                         image: true,
                         email: true
                     }
+                },
+                stduentFromTeacherMark: {
+                    select: {
+                        subject: true,
+                        mark: true,
+                        teacher:{ select: {
+                            id: true,
+                            fullname: true,
+                            image: true,
+                            email: true
+                        }}
+                    }
                 }
+
 
             }
         })
@@ -111,40 +124,64 @@ app.get("/student/:email", async (req, res) => {
     }
 })
 
-app.get("/teacher/:email", async (req, res) => {
-    try {
-        const teacher = await prisma.user.findMany({
-            where: {
-                email: req.params.email
-            },
-            select: {
-                id: true,
-                fullname: true,
-                image: true,
-                email: true,
-                password: true,
-                classes: {
-                    select: {
-                        name: true,
-                        students: {
-                            select: {
-                                id: true,
-                                fullname: true,
-                                image: true,
-                                email: true
-                            }
-                        }
-                    }
-                },
-                subjects: true
-            }
-        })
-        res.send(teacher)
-    } catch (error) { // @ts-ignore
-        res.status(400).send({errors: error.message})
-    }
-})
+// app.get("/teacher/:email", async (req, res) => {
+//     try {
+//         const findUser= await prisma.user.findUnique({where:{email:req.params.email}})
+//         const teacher = await prisma.user.findMany({
+//             where: {
+//                 email: req.params.email
+//             },
+//             select: {
+//                 id: true,
+//                 fullname: true,
+//                 image: true,
+//                 email: true,
+//                 password: true,
+//                 classes: {
+//                     select: {
+//                         name: true,
+//                         students: {
+//                             select: {
+//                                 id: true,
+//                                 fullname: true,
+//                                 image: true,
+//                                 email: true,
+//                                 stduentFromTeacherMark: {
+//                                     where: {
+//                                         teacherId: findUser ?. id
+//                                     },
+//                                     select: {
+//                                         mark: true,
+//                                         subject: {
+//                                             select: {
+//                                                 name: true
+//                                             }
+//                                         }
+//                                     }
+//                                 }
+//                             }
+//                         }
+                      
+//                     }
+//                 },
+//                 // subjects: true
+//             }
+//         })
 
+//         res.send(teacher)
+//     } catch (error) { // @ts-ignore
+//         res.status(400).send({errors: error.message})
+//     }
+// })
+
+
+app.get("/teacher/:email",async(req, res)=>{
+    const teacher=await prisma.user.findUnique({where:{email:req.params.email},
+        select:{id:true,fullname:true,image:true,email:true, password:true,subjects:true,classes:true}
+
+    })
+    res.send(teacher)
+})
 app.get("/parent/:email", async (req, res) => {
     try {
         const parent = await prisma.user.findMany({
@@ -164,8 +201,10 @@ app.get("/parent/:email", async (req, res) => {
                         email: true,
                         class: {
                             select : {
-                                name: true
+                                name: true,
+                                subjects:{select:{marks:{select:{mark:true,subject:true}}}}
                             }
+
                         }
                     }
                 }
@@ -302,9 +341,11 @@ app.post("/sign-in", async (req, res) => {
             return;
         }
 
-        const user = await prisma.user.findUnique({where: {
+        const user = await prisma.user.findUnique({
+            where: {
                 email
-            }});
+            }
+        },);
         if (user && bcrypt.compareSync(password, user.password)) {
             const token = generateToken(user.id);
             res.send({user, token});
@@ -321,32 +362,32 @@ app.post("/sign-in", async (req, res) => {
 app.get("/validate", async (req, res) => {
     try {
         if (req.headers.authorization) {
-          const user = await getCurrentUser(req.headers.authorization);
-          // @ts-ignore
-          res.send({ user, token: getToken(user.id) });
+            const user = await getCurrentUser(req.headers.authorization);
+            // @ts-ignore
+            res.send({user, token: getToken(user.id)
+            });
         }
-      } catch (error) {
-        // @ts-ignore
-        res.status(400).send({ error: error.message });
-      }
+    } catch (error) { // @ts-ignore
+        res.status(400).send({error: error.message});
+    }
 });
 
-app.post("/news",async(req,res)=>{
-    try{
-        const newPost={
-            title:req.body.title,
-            content:req.body.content,
-            image:req.body.image
-        }
-        const news = await prisma.news.create({data:newPost})
-        res.send(news)
-    }catch (error) { 
-        // @ts-ignore
-        res.status(400).send({ errors: [error.message]
-        });
-    }
- 
-})
+// app.post("/news", async (req, res) => {
+//     try {
+//         const newPost = {
+//             title: req.body.title,
+//             content: req.body.content,
+//             image: req.body.image
+//         }
+//         const news = await prisma.news.create({data: newPost})
+//         res.send(news)
+//     } catch (error) { 
+//         // @ts-ignore
+//         res.status(400).send({errors: [error.message]
+//         });
+//     }
+
+// })
 
 app.listen(port, () => {
     console.log(`Serveri is running on: http://localhost:${port}`);

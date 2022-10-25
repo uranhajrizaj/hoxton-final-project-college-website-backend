@@ -18,14 +18,14 @@ model User {
   password  String
   role      String
   students  User[] @relation("TeacherStudents")
-  teacher   User?  @relation("TeacherStudents", fields: [teacherId], references: [id])
+  teacher   User?  @relation("TeacherStudents", fields: [teacherId], references: [id],onDelete: Cascade,onUpdate: Cascade)
   teacherId Int?
 
   childrens User[] @relation("ParentStudent")
-  parent    User?  @relation("ParentStudent", fields: [parentId], references: [id])
+  parent    User?  @relation("ParentStudent", fields: [parentId], references: [id],onDelete: Cascade,onUpdate: Cascade)
   parentId  Int?
 
-  class   Class? @relation(fields: [classId], references: [id])
+  class   Class? @relation(fields: [classId], references: [id],onDelete: Cascade,onUpdate: Cascade)
   classId Int?
 
   classes Class[] @relation("teachers")
@@ -33,6 +33,9 @@ model User {
   subjects Subject[] @relation("teacher")
 
   posts News[]
+
+  teachertoStudentMark Mark[]  @relation("teachermark")
+  stduentFromTeacherMark Mark[] @relation("studentmark")
 }
 
 model Class {
@@ -45,9 +48,24 @@ model Class {
 
 model Subject {
   id         Int     @id @default(autoincrement())
-  name       String
+  name       String  @unique 
   professors User[]  @relation("teacher")
   classes    Class[]
+  marks      Mark[]
+}
+
+model Mark {
+  id   Int @id @default(autoincrement())
+  mark Int  
+
+  subject   Subject @relation(fields: [subjectId], references: [id],onDelete: Cascade,onUpdate: Cascade)
+  subjectId Int
+
+  teacher   User @relation("teachermark",fields: [teacherId], references: [id],onDelete: Cascade,onUpdate: Cascade)
+  teacherId Int
+
+  student   User @relation("studentmark",fields: [studentId], references: [id],onDelete: Cascade,onUpdate: Cascade)
+  studentId Int
 }
 
 model News {
@@ -55,6 +73,6 @@ model News {
   title   String
   content String
   image   String?
-  admin   User? @relation(fields: [userId], references: [id])
-  userId Int?
+  admin   User   @relation(fields: [userId], references: [id],onDelete: Cascade,onUpdate: Cascade)
+  userId  Int
 }
